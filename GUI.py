@@ -161,10 +161,13 @@ class PaletteConverterApp(tk.Tk):
         self.colors = {
             "bg": "#16213e",       # Deep Void
             "fg": "#ffffff",       # Starlight
-            "accent": "#e94560",   # Sunset Pink
+            "accent": "#A42F43",   # Designer Red
             "secondary": "#0f3460",# Twilight Blue
             "input_bg": "#1a1a2e", # Darker Void
-            "success": "#4cc9f0"   # Light Blue
+            "success": "#4cc9f0",   # Light Blue
+            "disabled": "#535c68",  # Greyed out
+            "browse_bg": "#3498db", # Calmer Blue for Browse
+            "browse_fg": "#ffffff"  # White text for better contrast
         }
         
         self.configure(bg=self.colors["bg"])
@@ -217,7 +220,21 @@ class PaletteConverterApp(tk.Tk):
         )
         self.style.map(
             "Accent.TButton",
-            background=[("active", "#ff6b81"), ("pressed", "#c0392b")]
+            background=[("active", "#c23b53"), ("pressed", "#822536"), ("disabled", self.colors["disabled"])]
+        )
+
+        # distinct Browse Button
+        self.style.configure(
+            "Browse.TButton",
+            background=self.colors["browse_bg"],
+            foreground=self.colors["browse_fg"],
+            borderwidth=0,
+            font=("Segoe UI", 9, "bold"),
+            padding=5
+        )
+        self.style.map(
+            "Browse.TButton",
+            background=[("active", "#5dade2"), ("pressed", "#2980b9")]
         )
 
         self.style.configure(
@@ -281,6 +298,8 @@ class PaletteConverterApp(tk.Tk):
         file_frame.pack(fill="x", pady=(0, 20))
         
         self.act_path_var = tk.StringVar()
+        self.act_path_var.trace("w", self._validate_act_input) # Monitor changes
+
         entry = tk.Entry(
             file_frame, 
             textvariable=self.act_path_var,
@@ -295,20 +314,21 @@ class PaletteConverterApp(tk.Tk):
         
         btn_browse = ttk.Button(
             file_frame, 
-            text="Browse...", 
-            style="Secondary.TButton",
+            text="BROWSE...", 
+            style="Browse.TButton",
             command=lambda: self._browse_file(self.act_path_var, "act")
         )
         btn_browse.pack(side="right")
         
         # Convert Button
-        btn_convert = ttk.Button(
+        self.btn_convert_act = ttk.Button(
             container, 
             text="CONVERT TO .GPL (GIMP)", 
             style="Accent.TButton",
-            command=self._convert_act_to_gpl
+            command=self._convert_act_to_gpl,
+            state="disabled" # Default to disabled
         )
-        btn_convert.pack(fill="x", pady=20)
+        self.btn_convert_act.pack(fill="x", pady=20)
 
     def _build_gpl_to_act_tab(self):
         container = tk.Frame(self.tab_gpl_to_act, bg=self.colors["bg"])
@@ -322,6 +342,8 @@ class PaletteConverterApp(tk.Tk):
         file_frame.pack(fill="x", pady=(0, 20))
         
         self.gpl_path_var = tk.StringVar()
+        self.gpl_path_var.trace("w", self._validate_gpl_input) # Monitor changes
+
         entry = tk.Entry(
             file_frame, 
             textvariable=self.gpl_path_var,
@@ -336,20 +358,33 @@ class PaletteConverterApp(tk.Tk):
         
         btn_browse = ttk.Button(
             file_frame, 
-            text="Browse...", 
-            style="Secondary.TButton",
+            text="BROWSE...", 
+            style="Browse.TButton",
             command=lambda: self._browse_file(self.gpl_path_var, "gpl")
         )
         btn_browse.pack(side="right")
         
         # Convert Button
-        btn_convert = ttk.Button(
+        self.btn_convert_gpl = ttk.Button(
             container, 
             text="CONVERT TO .ACT (ADOBE)", 
             style="Accent.TButton",
-            command=self._convert_gpl_to_act
+            command=self._convert_gpl_to_act,
+            state="disabled" # Default to disabled
         )
-        btn_convert.pack(fill="x", pady=20)
+        self.btn_convert_gpl.pack(fill="x", pady=20)
+
+    def _validate_act_input(self, *args):
+        if self.act_path_var.get().strip():
+            self.btn_convert_act.configure(state="normal")
+        else:
+            self.btn_convert_act.configure(state="disabled")
+
+    def _validate_gpl_input(self, *args):
+        if self.gpl_path_var.get().strip():
+            self.btn_convert_gpl.configure(state="normal")
+        else:
+            self.btn_convert_gpl.configure(state="disabled")
 
     def _browse_file(self, var, ftype):
         if ftype == "act":
@@ -363,7 +398,7 @@ class PaletteConverterApp(tk.Tk):
     def _convert_act_to_gpl(self):
         input_path = self.act_path_var.get()
         if not input_path:
-            messagebox.showwarning("Warning", "Please select a valid .act file first.")
+            # Should not happen if button disabled, but safe check
             return
 
         try:
@@ -386,7 +421,6 @@ class PaletteConverterApp(tk.Tk):
     def _convert_gpl_to_act(self):
         input_path = self.gpl_path_var.get()
         if not input_path:
-            messagebox.showwarning("Warning", "Please select a valid .gpl file first.")
             return
 
         try:
